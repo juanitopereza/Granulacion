@@ -10,22 +10,24 @@ NIR = np.loadtxt("spnir.dat")
 VIS = np.loadtxt("spvis.dat")
 
 NIR[:,0] = (1.0/NIR[:,0] )*1e8
+VIS[:,0] = (1.0/VIS[:,0] )*1e8
 #%%
 horiz = np.ones(len(NIR[:,0]))
 
-fig = plt.figure(figsize = (15,15))
+# limites de la region de la linea en Angstroms
+lambda_min = 5475.1
+lambda_max = 5475.65
+
+fig = plt.figure(figsize = (10,10))
 
 plt.plot(NIR[:,0], NIR[:,1], c="r")
 plt.plot(NIR[:,0], horiz)
-plt.xlim(6219,6232)
+plt.xlim(lambda_min,lambda_max)
+plt.ticklabel_format(useOffset=False)
 plt.title("Espectro corregido")
 plt.xlabel(u"$Número\ de\ onda\ cm^{-1}$")
 plt.show()
 #%%
-
-# limites de la region de la linea en Angstroms
-lambda_min = 5528.0
-lambda_max = 5528.8
 
 # porcentaje de desecho antes del continuo
 des = 10.0
@@ -42,7 +44,6 @@ tope = 1.0 - (des/100.0*(1.00 - minimo))
 region_izq = region[region[:,0] < L_min]
 region_der = region[region[:,0] > L_min]
 
-#%%
 bisectriz = np.zeros((N_partes,2))
 
 bisectriz[0,1] = minimo
@@ -51,6 +52,7 @@ bisectriz[0,0] = L_min
 pasos = np.linspace(minimo,tope,N_partes)
 
 bisectriz[:,1] = pasos
+
 
 for i in range(1,N_partes):
 
@@ -62,13 +64,15 @@ for i in range(1,N_partes):
 
     bisectriz[i,0] = (x_izq + x_der)/2.0
 
-
-#%%
 n_points_extrapol = 5
 
 m,b = np.polyfit(bisectriz[1:n_points_extrapol+1,0],bisectriz[1:n_points_extrapol+1,1],1)
 
-core = (minimo-b)/m
+core = np.array([0.0,0.0])
+core[0] = (minimo-b)/m
+core[1] = minimo
+
+core
 
 x = np.linspace(lambda_min,lambda_max)
 
@@ -81,14 +85,21 @@ plt.plot(region[:,0], line, c="r")
 plt.scatter(region[:,0], region[:,1], s=5)
 plt.scatter(L_min,minimo)
 plt.scatter(bisectriz[:,0], bisectriz[:,1], c="r")
-plt.scatter(core,minimo)
-#plt.plot(x,m*x+b)
+plt.scatter(core[0],core[1])
+plt.plot(x,m*x+b)
 plt.ticklabel_format(useOffset=False)
-#plt.xlim(5528.350,5528.355)
-#plt.ylim(0.1,1.1)
+plt.xlim(lambda_min,lambda_max)
+#plt.xlim(bisectriz[0,0]-0.01,bisectriz[0,0]+0.01)
+plt.ylim(minimo-0.1,1.1)
 plt.xlabel(u"$Longitud\ de\ onda\ [\AA]$")
 
-plt.savefig("core_5puntos.pdf")
-
+#plt.savefig("core_5puntos.pdf")
 
 plt.show()
+#%%
+
+final = core
+final = np.vstack((final,bisectriz))
+
+np.savetxt("./lineas/bisec_5475.txt",final)
+#%%
